@@ -1,6 +1,6 @@
 # Genetic Network Programming (GNP)
 
-This repository provides a Python implementation of the research paper **“Adaptive Exploration-Exploitation Adjustment in Genetic Network Programming Inspired by Human Behavior.”** The project focuses on enhancing Genetic Network Programming (GNP) by introducing a human-behavior-inspired adaptive mechanism that dynamically balances exploration and exploitation during evolution.
+This repository provides a Python implementation of the research paper **“Towards Interpretable Agents: A Human-Inspired Adaptive Exploration-Exploitation Framework for Genetic Network Programming”**. The project focuses on enhancing Genetic Network Programming (GNP) by introducing a human-behavior-inspired adaptive mechanism that dynamically balances exploration and exploitation during evolution.
 
 ## 📌 Overview
 
