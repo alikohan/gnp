@@ -12,11 +12,11 @@ This project extends standard GNP by integrating adaptive mechanisms that adapt 
 | File / Module                | Description                                                   |
 | ---------------------------- | ------------------------------------------------------------- |
 | `GNP.py`                     | Standard Genetic Network Programming                                    |
-| `AGNP.py`                    | Advanced GNP with dynamic exploration-exploitation adjustment           |
+| `HGNP.py`                    | Human-Inspired GNP with dynamic exploration-exploitation adjustment           |
 | `SBGNP.py`                   | Situation-Based GNP variant (for comparison)                       |
 | `simplifiedGNP.py`           | Simplified GNP with restricted operators (for comparison)               |
-| `simplifiedGNP-AGNP.py`      | Simplified GNP integrated with AGNP                                     |
-| `SBGNP-AGNP.py`              | SBGNP integrated with AGNP                                              |
+| `simplifiedGNP-HGNP.py`      | Simplified GNP integrated with HGNP                                     |
+| `SBGNP-HGNP.py`              | SBGNP integrated with HGNP                                              |
 | `visualize.py`               | Visualization function to monitor agent behavior on Tileworld benchmark |
 | `tile_world_instructions.py` | GNP judgement and processing node functions in Tileworld for visualization                  |
 | `GA_tile_world_instructions.py` | GNP judgement and processing node functions in Tileworld for GA            |
@@ -40,9 +40,9 @@ pip install -r requirements.txt
 
 ### Running Algorithm
 
-Example: Run the advanced GNP (AGNP)
+Example: Run the Human-Inspired GNP (HGNP)
 ```bash
-python AGNP.py
+python HGNP.py
 ```
 
 This executes the adaptive algorithm and prints progress and results to the console. It also generates two Excel files (.xlsx) and a text file (.txt) to log detailed progress and final outputs.

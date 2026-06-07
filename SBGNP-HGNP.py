@@ -1,5 +1,5 @@
 """
-Simplified GNP-AGNP - Simplified Genetic Network Programming with Advanced Genetic Network Programming
+SBGNP-HGNP - Situation-Based Genetic Network Programming with Human-Inspired Genetic Network Programming
 """
 
 # ============================================================================
@@ -120,13 +120,15 @@ def generate_connection_gene(individual, connection_genes_number, begin_node, en
 def initialize_population(individuals, population_size):
     """Initialize population with fixed node genes and random connection genes."""
     for i in range(population_size): # loop for each individual
-        individuals.append(copy.deepcopy(base_individual))
-        # start node
-        individuals[i] = generate_connection_gene(individuals[i], 1, 1, 2)
-        # judgement node
-        individuals[i] = generate_connection_gene(individuals[i], 4, beginning_judgement_node, end_judgement_node + 1)
-        # processing node
-        individuals[i] = generate_connection_gene(individuals[i], 1, beginning_processing_node, end_processing_node + 1)
+        individuals.append([])
+        for j in range(len(initial_agents_index)): # create one GNP network per agent
+            individuals[i].append(copy.deepcopy(base_individual))
+            # start node
+            individuals[i][j] = generate_connection_gene(individuals[i][j], 1, 1, 2)
+            # judgement node
+            individuals[i][j] = generate_connection_gene(individuals[i][j], 4, beginning_judgement_node, end_judgement_node + 1)
+            # processing node
+            individuals[i][j] = generate_connection_gene(individuals[i][j], 1, beginning_processing_node, end_processing_node + 1)
 
 
 # ============================================================================
@@ -167,38 +169,28 @@ def calculate_fitness(tiles, holes, distance_between_tiles_and_holes_at_start, r
 
 
 # ============================================================================
-# AGENT EXECUTION (GNP NETWORK TRAVERSAL WITH SEQUENCE TRACKING)
+# AGENT EXECUTION (GNP NETWORK TRAVERSAL)
 # ============================================================================
 
-def run_agent(individual, agent, agent_index, rest_steps, agents, tiles, holes, node, sequences):
-    """
-    Execute one step for a single agent using the GNP network structure.
-    Tracks execution sequence: [node_id, result] for each node visited.
-    """
+def run_agent(individual, agent, agent_index, rest_steps, agents, tiles, holes, node):
+    """Execute one step for a single agent using its own GNP network structure."""
     temp_for_step = 0 # to use for calculate rest step
     while temp_for_step < each_step_according_to_di:
-        sequences.append([node])  # Track which node was visited
-        if individual[node][0] == 0:  # start node
-            result = 0
-        elif individual[node][0] == 1:  # judgement node
+        if individual[node][0] == 1: # judgement node
             result = individual[node][1](agent, agents, tiles, holes)
             temp_for_step += individual[node][2]
-        elif individual[node][0] == 2:  # processing node
+        elif individual[node][0] == 2: # processing node
             individual[node][1](agent, agents, tiles, holes)
             result = 0 # because all processing node have one connection gene
             temp_for_step += individual[node][2]
         node = individual[node][3 + result * 2]
-        sequences[-1].append(result)  # Track which branch was taken
     # print(tiles[0].index)
     rest_steps[agent_index] -= 1
     return node
 
 
-def run_individual(individual, agents, tiles, holes, sequences):
-    """
-    Run agents with individual GNP network.
-    Tracks execution sequences for each agent to identify used branches.
-    """
+def run_individual(individual, agents, tiles, holes):
+    """run agents with individual GNP network"""
     rest_steps = []
     # print(tiles[0].index)
     for i in range(len(agents)):
@@ -206,22 +198,19 @@ def run_individual(individual, agents, tiles, holes, sequences):
     distance_between_tiles_and_holes_at_start = calculate_distance_between_tiles_and_holes(tiles, holes)
     nodes_for_each_agent = []
     for i in range(len(agents)):
-        nodes_for_each_agent.append(1)  # Start at node 1 (start node)
-        sequences.append([])  # Initialize sequence tracking for each agent
+        nodes_for_each_agent.append(individual[i][1][3]) # each agent starts at its own network's start node
+        # nodes_for_each_agent = [individual[1][3], individual[1][3], individual[1][3]]
     for i in range(initial_remaining_step):
         for j in range(len(agents)):
-            nodes_for_each_agent[j] = run_agent(individual, agents[j], j, rest_steps, agents, tiles, holes, nodes_for_each_agent[j], sequences[j])
+            nodes_for_each_agent[j] = run_agent(individual[j], agents[j], j, rest_steps, agents, tiles, holes, nodes_for_each_agent[j])
             if calculate_distance_between_tiles_and_holes(tiles, holes) == 0:
                 return calculate_fitness(tiles, holes, distance_between_tiles_and_holes_at_start, rest_steps)
     
     return calculate_fitness(tiles, holes, distance_between_tiles_and_holes_at_start, rest_steps)
 
 
-def fitness(individual, sequences):
-    """
-    Calculate fitness for an individual by running it on a fresh simulation.
-    Also tracks execution sequences to identify which branches were actually used.
-    """
+def fitness(individual):
+    """Calculate fitness for an individual by running it on a fresh simulation."""
     agents = []
     for i in range(len(initial_agents_index)):
         agents.append(object_head(initial_agents_index[i], 0))
@@ -232,7 +221,7 @@ def fitness(individual, sequences):
     for i in range(len(initial_holes_index)):
         holes.append(object_head(initial_holes_index[i], 0))
 
-    return run_individual(individual, agents, tiles, holes, sequences)
+    return run_individual(individual, agents, tiles, holes)
 
 
 # ============================================================================
@@ -245,21 +234,6 @@ def roullete_wheel(fitnesses):
     min_of_fitness = min(fitnesses)
     for i in range(len(fitnesses)):
         fitnesses[i] = fitnesses[i] - min_of_fitness + fitness_bias
-    sum_of_fitnesses = sum(fitnesses)
-    rand_value = random.random()
-    temp = 0
-    for i in range(len(fitnesses)):
-        temp += fitnesses[i] / sum_of_fitnesses
-        if rand_value < temp:
-            return i
-
-
-def rank(fitnesses):
-    """Select an individual using rank-based selection."""
-    fitnesses.sort(reverse=True)
-    for i in range(len(fitnesses)):
-        fitnesses[i] = 1 / (i + 2)
-        
     sum_of_fitnesses = sum(fitnesses)
     rand_value = random.random()
     temp = 0
@@ -321,22 +295,8 @@ def optimize_possibility(individual):
     return individual_possibility
 
 
-def eliminate_duplicates(list_of_lists):
-    """
-    Remove duplicate entries from a list of lists.
-    Used to get unique execution branches from sequences.
-    """
-    # Convert the list of lists to a set of tuples
-    unique_tuples = set(tuple(lst) for lst in list_of_lists)
-    
-    # Convert the set of tuples back to a list of lists
-    unique_lists = [list(t) for t in unique_tuples]
-    
-    return unique_lists
-
-
 # ============================================================================
-# GENETIC OPERATORS (SIMPLIFIED - ONLY MODIFY USED BRANCHES)
+# GENETIC OPERATORS
 # ============================================================================
 
 def eliminate_loops(individual):
@@ -360,55 +320,38 @@ def eliminate_loops(individual):
     return individual
 
 
-def crossover(individual1, individual2, sequence1, sequence2, fitness1, fitness2):
+def crossover(individual1, individual2, fitness1, fitness2):
     """
     Perform optimized crossover between two GNP networks.
-    Only modifies branches that were actually used during execution (simplified approach).
-    Uses execution sequences to identify which branches to modify.
+    Uses node connection probabilities to guide crossover decisions.
     """
-    # Collect all used branches from both individuals
-    all_used_branches = []
-    for i in range(len(initial_agents_index)):
-        all_used_branches.extend(sequence1[i])
-        all_used_branches.extend(sequence2[i])
-    all_used_branches = eliminate_duplicates(all_used_branches)
-    # print(all_used_branches)
+    # print(fitness1)
+    # print(fitness2)
 
     ind1_optimized_possibilty = optimize_possibility(individual1)
     ind2_optimized_possibilty = optimize_possibility(individual2)
-       
-    # Only crossover on branches that were actually used
-    for i in range(len(all_used_branches)):
-        if random.random() < (pc * -((((ind1_optimized_possibilty[all_used_branches[i][0]] * ind2_optimized_possibilty[all_used_branches[i][0]]) + 0.3) ** 4 - 1) 
-                                     * (transform_value((fitness1 + fitness2) / 2, 0, 500, 0, 1) / 2) - 1)):
-            # Swap the specific connection gene for this branch
-            temp = individual1[all_used_branches[i][0]][3 + all_used_branches[i][1] * 2]
-            individual1[all_used_branches[i][0]][3 + all_used_branches[i][1] * 2] = individual2[all_used_branches[i][0]][3 + all_used_branches[i][1] * 2]
-            individual2[all_used_branches[i][0]][3 + all_used_branches[i][1] * 2] = temp
+    for i in range(1, len(individual1)):
+        # print(ind1_optimized_possibilty[i])
+        # print(ind2_optimized_possibilty[i])
+        # print((transform_value((fitness1 + fitness2) / 2, 0, 500, 0.75, 1.25) ** 2))
+        # print((pc * ((2 - ind1_optimized_possibilty[i] * ind2_optimized_possibilty[i]) ** (transform_value((fitness1 + fitness2) / 2, 0, 500, 0.75, 1.25) ** 2))))
+        if random.random() < (pc * -((((ind1_optimized_possibilty[i] * ind2_optimized_possibilty[i]) + 0.3) ** 4 - 1) * (transform_value((fitness1 + fitness2) / 2, 0, 500, 0, 1) / 2) - 1)):
+            temp = individual1[i][3:]
+            individual1[i][3:] = individual2[i][3:]
+            individual2[i][3:] = temp
     
     return [individual1, individual2]
 
 
-def mutation(individual, sequence, epoch):
-    """
-    Apply mutation to a GNP network.
-    Only mutates branches that were actually used during execution (simplified approach).
-    """
-    # Collect all used branches from execution sequence
-    all_used_branches = []
-    for i in range(len(initial_agents_index)):
-        all_used_branches.extend(sequence[i])
-    all_used_branches = eliminate_duplicates(all_used_branches)
-    
-    # Mutate only used branches
-    for i in range(len(all_used_branches)):
-        if random.random() < pm:
-            candidate_node = all_used_branches[i][0] # because connection genes should not include current node (to avoid loop in network)
-            while candidate_node == all_used_branches[i][0]:
-                candidate_node = random.randrange(2, len(individual))
-            individual[all_used_branches[i][0]][3 + all_used_branches[i][1] * 2] = candidate_node
-
-    # Special mutation for judgement nodes to connect to processing nodes
+def mutation(individual, epoch):
+    """Apply mutation to a GNP network."""
+    for i in range(len(individual)):
+        for j in range(3, len(individual[i]), 2):
+            if random.random() < pm:
+                candidate_node = i # because connection genes should not include current node (to avoid loop in network)
+                while candidate_node == i:
+                    candidate_node = random.randrange(2, len(individual))
+                individual[i][j] = candidate_node
     for i in range(end_judgement_node + 1):
         for j in range(3, len(individual[i]), 2):
             if individual[individual[i][j]][0] == 1:
@@ -417,15 +360,6 @@ def mutation(individual, sequence, epoch):
                     while candidate_node == i:
                         candidate_node = random.randrange(beginning_processing_node, end_processing_node + 1)
                     individual[i][j] = candidate_node
-
-    # Old approach (commented out) - would mutate all nodes
-    # for i in range(len(individual)):
-    #     for j in range(3, len(individual[i]), 2):
-    #         if random.random() < pm:
-    #             candidate_node = i # because connection genes should not include current node (to avoid loop in network)
-    #             while candidate_node == i:
-    #                 candidate_node = random.randrange(2, len(individual))
-    #             individual[i][j] = candidate_node
     return individual
 
 
@@ -442,7 +376,7 @@ def convert_individual_to_GA_format(individual):
 
 
 def save_to_file(individual):
-    """Save individual GNP network to result.txt file."""
+    """Save GNP individual to result.txt file."""
     try:
         f = open("result.txt", "a")
     except:
@@ -480,23 +414,17 @@ def get_average(fitnesses_of_all):
 def save_to_excel(fitnesses):
     """Save fitness data to Excel file."""
     excel_file_name = 'fitnesses.xlsx'
-    
-    # Create a new workbook
     workbook = xl.Workbook()
-    sheet_name = 'Fitness Data'
-    
-    # Access the active sheet (automatically created)
-    excel_sheet = workbook.active
-    excel_sheet.title = sheet_name
-    
+    workbook.save(excel_file_name)
+    sheet_name = 'Sheet'
+    excel_file = xl.load_workbook(excel_file_name)
+    excel_sheet = excel_file[sheet_name]
     for i in range(len(fitnesses)):
-        excel_sheet.cell(i + 1, 1).value = fitnesses[i]
-
-    try:
-        workbook.save(excel_file_name)
-        print("Data saved to", excel_file_name)
-    except PermissionError:
-        print('Permission denied! Unable to save excel file.')
+        try:
+            excel_sheet.cell(i + 1, 1).value = fitnesses[i]
+            excel_file.save(excel_file_name)
+        except PermissionError:
+            print('permission denied!')
 
 
 def save_to_excel_complete_report(fitnesses_of_all):
@@ -523,63 +451,56 @@ def save_to_excel_complete_report(fitnesses_of_all):
 
 
 def run_GA(max_fitness_of_each_epoch):
-    """
-    Run the genetic algorithm for evolving GNP networks.
-    Uses simplified approach: only modifies branches that were actually used during execution.
-    Execution sequences are tracked to identify active branches.
-    """
+    """Run the genetic algorithm for evolving GNP networks."""
     individuals = []
     initialize_population(individuals, population_size) # fill individuals with fixed node genes and random connection genes
-
     fitnesses = []
+    for i in range(population_size):
+        fitnesses.append(fitness(individuals[i]))
     
     for i in range(epoch_number):
         print('epoch number : ' + str(i))
         print(fitnesses)
         fitnesses = []
-        sequences = []  # Track execution sequences for each individual
         for j in range(population_size):
-            sequences.append([])
-            fitnesses.append(fitness(individuals[j], sequences[j]))
+            fitnesses.append(fitness(individuals[j]))
         new_individuals = [] # for next epochs
         individual_with_max_fitness = individuals[fitnesses.index(max(fitnesses))] # to hold 2 best
         new_individuals.append(copy.deepcopy(individual_with_max_fitness)) # to hold 2 best
         new_individuals.append(copy.deepcopy(individual_with_max_fitness)) # to hold 2 best
         max_fitness_of_each_epoch.append(max(fitnesses))
         
-        # Print execution sequences of best individual
-        for agent_idx in range(len(initial_agents_index)):
-            print(sequences[fitnesses.index(max(fitnesses))][agent_idx])
-        
         for j in range((population_size // 2) - 1): # to hold 2 best
             selected_individual_index = selection(fitnesses)
-            crossovered = crossover(
-                copy.deepcopy(individuals[selected_individual_index[0]]),
-                copy.deepcopy(individuals[selected_individual_index[1]]),
-                sequences[selected_individual_index[0]],
-                sequences[selected_individual_index[1]],
-                fitnesses[selected_individual_index[0]],
-                fitnesses[selected_individual_index[1]]
-            )
-            new_individuals.append(crossovered[0])
-            new_individuals.append(crossovered[1])
-
+            new_individuals.append([])
+            new_individuals.append([])
+            # Perform crossover on each agent's network separately
+            for k in range(len(initial_agents_index)):
+                crossovered = crossover(
+                    copy.deepcopy(individuals[selected_individual_index[0]][k]),
+                    copy.deepcopy(individuals[selected_individual_index[1]][k]),
+                    fitnesses[selected_individual_index[0]],
+                    fitnesses[selected_individual_index[1]]
+                )
+                new_individuals[-2].append(crossovered[0])
+                new_individuals[-1].append(crossovered[1])
+        
         individuals = new_individuals
+        # Apply mutation and loop elimination to each agent's network separately
         for j in range(2, len(new_individuals)): # hold 2 best
-            mutation(new_individuals[j], sequences[j], i)
-            new_individuals[j] = eliminate_loops(new_individuals[j])
+            for k in range(len(initial_agents_index)):
+                mutation(new_individuals[j][k], i)
+                new_individuals[j][k] = eliminate_loops(new_individuals[j][k])
 
     fitnesses = []
-    sequences = []
     for j in range(population_size):
-        sequences.append([])
-        fitnesses.append(fitness(individuals[j], sequences[j]))
+        fitnesses.append(fitness(individuals[j]))
     print(fitnesses)
     print(max(fitnesses))
     print(individuals[fitnesses.index(max(fitnesses))])
-    save_to_file(individuals[fitnesses.index(max(fitnesses))])
     max_fitness_of_each_epoch.append(max(fitnesses))
     max_fitness_of_each_epoch.pop(0) # pop first element (because before this line len(max_fitness_of_each_epoch) is epoch_number + 1)
+    save_to_file(individuals[fitnesses.index(max(fitnesses))])
     return individuals[fitnesses.index(max(fitnesses))]
 
 

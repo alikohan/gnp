@@ -452,7 +452,7 @@ def run_GA(max_fitness_of_each_epoch):
     Run the genetic algorithm for evolving GNP networks.
     Uses simplified approach: only modifies branches that were actually used during execution.
     Execution sequences are tracked to identify active branches.
-    Uses standard crossover and mutation (not optimized versions from AGNP).
+    Uses standard crossover and mutation (not optimized versions from HGNP).
     """
     individuals = []
     initialize_population(individuals, population_size) # fill individuals with fixed node genes and random connection genes
