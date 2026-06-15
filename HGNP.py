@@ -344,13 +344,9 @@ def crossover(individual1, individual2, fitness1, fitness2, epoch, max_fitness):
     ind1_optimized_possibilty = optimize_possibility(individual1)
     ind2_optimized_possibilty = optimize_possibility(individual2)
     for i in range(1, len(individual1)):
-        # print(ind1_optimized_possibilty[i])
-        # print(ind2_optimized_possibilty[i])
-        # print((transform_value((fitness1 + fitness2) / 2, 0, 500, 0.75, 1.25) ** 2))
-        # print((pc * ((2 - ind1_optimized_possibilty[i] * ind2_optimized_possibilty[i]) ** (transform_value((fitness1 + fitness2) / 2, 0, 500, 0.75, 1.25) ** 2))))
-        # OLDDDD if random.random() < (pc * -((((ind1_optimized_possibilty[i] * ind2_optimized_possibilty[i]) + 0.3) ** 4 - 1) * (transform_value((fitness1 + fitness2) / 2, 0, 500, 0, 1) / 2) - 1)):
-        # CORRECTEDDDD if random.random() < (pc * -(((transform_value(epoch, 0, 500, 0, 1) + 0.3) ** 4 - 1) * ((ind1_optimized_possibilty[i] + ind2_optimized_possibilty[i]) / 4) - 1)):
-        # LINEAR FUNCTIONNNNN:
+        # NON-LINEAR FUNCTION:
+        # if random.random() < (pc * -(((transform_value(epoch, 0, 500, 0, 1) + 0.3) ** 4 - 1) * ((ind1_optimized_possibilty[i] + ind2_optimized_possibilty[i]) / 4) - 1)):
+        # LINEAR FUNCTION:
         if random.random() < pc * -(transform_value(epoch, 0, 500, 0, 1) * (ind1_optimized_possibilty[i] + ind2_optimized_possibilty[i] - 1) + 1):
             temp = individual1[i][3:]
             individual1[i][3:] = individual2[i][3:]
